@@ -376,25 +376,32 @@ initialize_nvml()
 # HF Access Token
 access_token = "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"
 
-# Load model and tokenizer
-model_name = 'facebook/opt-125m'
-            #"meta-llama/Llama-3.1-8B" 
-            #"meta-llama/Llama-3.1-8B"  
-            #"facebook/opt-125m"
-            #"tiiuae/falcon-7b"
-            #"ProbeMedicalYonseiMAILab/medllama3-v20"
-            #"NTQAI/Nxcode-CQ-7B-orpo"
-            #"MathLLMs/MathCoder-L-7B"
-model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", token=access_token)
-tokenizer = AutoTokenizer.from_pretrained(model_name, token=access_token)
+# List of model names
+model_names = [
+    #'facebook/opt-125m',
+    'mistralai/Mistral-7B-v0.1',
+    'meta-llama/Llama-3.1-8B',  
+    'tiiuae/falcon-7b',
+    'ProbeMedicalYonseiMAILab/medllama3-v20',
+    'NTQAI/Nxcode-CQ-7B-orpo',
+    'MathLLMs/MathCoder-L-7B'
+]
 
 # Load MMLU data
 data_dict = load_mmlu_data(categories)
 
-# Collect metrics
-flop_mmlu_metrics = collect_metrics_for_categories(data_dict, categories, bootstrapping, model, tokenizer, max_new_tokens)
+# Iterate over each model
+for model_name in model_names:
+    # Load model and tokenizer
+    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", token=access_token)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, token=access_token)
 
+    # Collect metrics
+    flop_mmlu_metrics = collect_metrics_for_categories(data_dict, categories, bootstrapping, model, tokenizer, max_new_tokens)
 
-# save metrics to JSON file
-with open(f"flop_MMLU_model={model_name.replace('/','-').replace('.', '_')}_maxnewtokens={max_new_tokens}_bootstrapping={bootstrapping}_category={category_text}_metrics.json", "w") as json_file:
-    json.dump(flop_mmlu_metrics, json_file)
+    # Save metrics to JSON file
+    json_file_name = f"flop_MMLU_model={model_name.replace('/', '-')}_maxnewtokens={max_new_tokens}_bootstrapping={bootstrapping}_metrics.json"
+    with open(json_file_name, "w") as json_file:
+        json.dump(flop_mmlu_metrics, json_file)
+
+    print(f"Metrics saved for model: {model_name}")
