@@ -215,7 +215,7 @@ def load_dataset(file_path):
 
 # Example Usage
 file_path = "./question.jsonl"
-bootstrapping = 4
+bootstrapping = 2
 max_new_tokens = 50
 df_mtconversation = load_dataset(file_path)
 
@@ -241,15 +241,25 @@ model_name = [#'facebook/opt-125m'
 counter = 0
 allmetrics = []
 
+counter = 0
+allmetrics = {}
+
 for models in model_name:
     #model = AutoModelForCausalLM.from_pretrained(models, use_auth_token=access_token)
-
+    initialize_nvml()
     model = AutoModelForCausalLM.from_pretrained(models, device_map="auto", use_auth_token=access_token)
     tokenizer = AutoTokenizer.from_pretrained(models, use_auth_token=access_token)
     metrics = collect_metrics_for_categories(df_mtconversation, categories, bootstrapping, model, tokenizer)
-    allmetrics.append(metrics)
+    filename = f"{models.replace('/', '_')}_metrics.json"
+    with open(filename, "w") as f:
+        json.dump(metrics, f, indent=4)
+    allmetrics[models] = metrics
+    del model
+    del tokenizer
+    gc.collect()
+    torch.cuda.empty_cache()
         
 # (Optionally, you can visualize the collected metrics here)
 # save metrics to JSON file
-    with open(f"{models.replace('/','-').replace('.', '_')}_bootstrapping={bootstrapping}_metrics.json", "w") as json_file:
-        json.dump(metrics, json_file)
+with open("all_models_metrics.json", "w") as f:
+    json.dump(allmetrics, f, indent=4)
